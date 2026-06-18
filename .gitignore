@@ -1,0 +1,34 @@
+# ── Dependencies ──
+node_modules/
+.pnp
+.pnp.js
+
+# ── Secrets — NEVER commit these ──
+.env
+.env.local
+.env.production
+.env.development
+*.pem
+
+# ── Build output ──
+dist/
+build/
+.vite/
+
+# ── Logs ──
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# ── OS / editor ──
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Misc ──
+.cache/
+coverage/
+
+

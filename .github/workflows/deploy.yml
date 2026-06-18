@@ -1,0 +1,56 @@
+name: RD Cafe Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # Backend deploys automatically via Render (GitHub integration)
+  # This workflow just validates the build
+
+  validate-frontend:
+    name: Validate Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: npm run build
+
+      - name: Build success
+        run: echo "✅ Frontend build successful! Vercel will auto-deploy."
+
+  validate-backend:
+    name: Validate Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Check backend syntax
+        working-directory: backend
+        run: node --check src/server.js && echo "✅ Backend syntax OK! Render will auto-deploy."

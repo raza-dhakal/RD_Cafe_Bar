@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body { background: #0E0B08; color: #F5EDD8; font-family: 'DM Sans', sans-serif; }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: #0E0B08; }
+  ::-webkit-scrollbar-thumb { background: #C9A84C; border-radius: 2px; }
+}
+
+@layer components {
+  .btn-gold {
+    @apply bg-gold text-dark font-medium tracking-widest uppercase text-xs px-6 py-3 transition-all duration-200 hover:bg-gold-light hover:-translate-y-0.5 cursor-pointer;
+  }
+  .btn-outline {
+    @apply bg-transparent border border-gold text-gold tracking-widest uppercase text-xs px-6 py-3 transition-all duration-200 hover:bg-gold/10 cursor-pointer;
+  }
+  .input-field {
+    @apply w-full bg-dark-3 border border-gold/20 text-cream px-4 py-3 text-sm outline-none transition-colors duration-200 focus:border-gold placeholder:text-cream/30;
+  }
+  .label {
+    @apply block text-xs tracking-widest uppercase text-cream/50 mb-1.5;
+  }
+  .card {
+    @apply bg-dark-2 border border-gold/15 p-6;
+  }
+  .section-label {
+    @apply text-xs tracking-widest uppercase text-gold mb-3;
+  }
+  .section-heading {
+    @apply font-display text-4xl font-light leading-tight;
+  }
+  .page-enter {
+    animation: fadeUp 0.4s ease forwards;
+  }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
