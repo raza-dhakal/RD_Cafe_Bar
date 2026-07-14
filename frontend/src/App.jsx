@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
 import CartDrawer from './components/CartDrawer';
+import AIForecast from './pages/AIForecast';
 
 // Pages
 import Home          from './pages/Home';
@@ -40,6 +41,7 @@ function AppContent() {
       <Navbar />
       <CartDrawer />
       <Routes>
+        <Route path="/ai-forecast" element={<AdminRoute><AIForecast /></AdminRoute>} />
         <Route path="/"              element={<Home />} />
         <Route path="/menu"          element={<Menu />} />
         <Route path="/search"        element={<MenuSearch />} />

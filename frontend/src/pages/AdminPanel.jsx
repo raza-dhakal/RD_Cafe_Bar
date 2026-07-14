@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import AIForecast from './AIForecast';
+import InventoryPanel from './InventoryPanel';
+import BusinessAdvisor from './BusinessAdvisor';
+
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const s = { gold:'#C9A84C', cream:'#F5EDD8', dark:'#0E0B08', d2:'#1A1510', d3:'#241E15', muted:'rgba(245,237,216,0.5)', border:'rgba(201,168,76,0.18)' };
@@ -78,7 +82,7 @@ export default function AdminPanel() {
     setMenu(m => m.map(x => x._id===id ? {...x, isAvailable: val} : x));
   };
 
-  const TABS = [['dashboard','📊 Dashboard'],['orders','📦 Orders'],['menu','🍽 Menu'],['reviews','⭐ Reviews'],['reservations','🗓 Reservations'],['customers','👥 Customers']];
+  const TABS = [['dashboard','📊 Dashboard'],['orders','📦 Orders'],['menu','🍽 Menu'],['reviews','⭐ Reviews'],['reservations','🗓 Reservations'],['customers','👥 Customers'],['forecast','🌦 AI Forecast'],['inventory','📦 Inventory'],['advisor','🤖 AI Advisor'] ];
   const pendingReviews = reviews.filter(r=>r.status==='pending').length;
 
   const Th = ({ children }) => <th style={{fontSize:'0.62rem',letterSpacing:'0.15em',textTransform:'uppercase',color:s.muted,padding:'10px 12px',textAlign:'left',borderBottom:`1px solid ${s.border}`,fontWeight:400}}>{children}</th>;
@@ -328,6 +332,10 @@ export default function AdminPanel() {
             </table>
           </div>
         )}
+        {/* ── AI FORECAST ── */}
+        {tab==='forecast' && <AIForecast embedded />}
+        {tab==='inventory' && <InventoryPanel />}
+        {tab==='advisor' && <BusinessAdvisor />}
       </div>
     </div>
   );

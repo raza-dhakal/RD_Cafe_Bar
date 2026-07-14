@@ -7,7 +7,11 @@ const { User, MenuItem, Order, Reservation, Review } = require('../models/index'
 const authCtrl = require('../controllers/auth.controller');
 const orderCtrl = require('../controllers/order.controller');
 const paymentSvc = require('../services/payment.service');
+const Inventory = require('../models/inventory.model');
 
+
+
+const { sendSupplierOrderEmail } = require('../services/notification.service');
 const authRouter = express.Router();
 authRouter.post('/register',           authCtrl.register);
 authRouter.post('/login',              authCtrl.login);
@@ -226,6 +230,35 @@ adminRouter.delete('/users/:id', async (req, res) => {
   try { await User.findByIdAndDelete(req.params.id); res.json({ success: true, message: 'User removed.' }); }
   catch (err) { res.status(500).json({ success: false, message: 'Failed.' }); }
 });
+
+adminRouter.post('/supplier-order', async (req, res) => {
+  try {
+    const { supplierName, supplierEmail, items, city, date } = req.body;
+    if (!supplierEmail || !items?.length) return res.status(400).json({ success:false, message:'Supplier email and items required.' });
+    await sendSupplierOrderEmail({ supplierName, supplierEmail, items, city, date });
+    res.json({ success:true, message:`Order sent to ${supplierName}.` });
+  } catch (err) { res.status(500).json({ success:false, message: err.message }); }
+});
+
+
+// ── INVENTORY ──
+adminRouter.get('/inventory', async (req, res) => {
+  try { const items = await Inventory.find().sort({ createdAt: -1 }); res.json({ success:true, data: items }); }
+  catch (err) { res.status(500).json({ success:false, message: err.message }); }
+});
+adminRouter.post('/inventory', async (req, res) => {
+  try { const item = await Inventory.create(req.body); res.status(201).json({ success:true, data: item }); }
+  catch (err) { res.status(400).json({ success:false, message: err.message }); }
+});
+adminRouter.patch('/inventory/:id', async (req, res) => {
+  try { const item = await Inventory.findByIdAndUpdate(req.params.id, req.body, { new:true }); res.json({ success:true, data: item }); }
+  catch (err) { res.status(400).json({ success:false, message: err.message }); }
+});
+adminRouter.delete('/inventory/:id', async (req, res) => {
+  try { await Inventory.findByIdAndDelete(req.params.id); res.json({ success:true, message:'Deleted.' }); }
+  catch (err) { res.status(500).json({ success:false, message: err.message }); }
+});
+
 
 // ════════════════════════════════════════
 // USER ROUTES
