@@ -1,6 +1,7 @@
 # ☕ RD Café & Bar — Full Stack Website
 
-> Specialty coffee & craft cocktails — Kathmandu, Nepal
+> Specialty coffee & craft cocktails — 
+Sunwal-12, Bhumahi, Nawalparasi, Nepal
 
 ## 🗂️ Project Structure
 
