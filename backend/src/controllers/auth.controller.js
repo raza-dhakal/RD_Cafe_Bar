@@ -74,34 +74,74 @@ exports.resetPassword = async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: 'Password reset failed.' }); }
 };
 
-const otpStore = new Map();
+// ── ADMIN REQUEST OTP (MongoDB Persistent Fix) ───────────────────
 exports.adminRequestOtp = async (req, res) => {
   try {
     const { email, secretKey } = req.body;
+
+    // Credentials verify गर्ने
     if (email !== process.env.ADMIN_EMAIL || secretKey !== process.env.ADMIN_SECRET_KEY) {
       return res.status(401).json({ success: false, message: 'Invalid admin credentials.' });
     }
+
+    // 6-digit OTP generate गर्ने
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore.set(email, { otp, expires: Date.now() + 5 * 60 * 1000 });
+
+    // Database मा Admin खोज्ने वा नभए Auto Create गर्ने
+    let admin = await User.findOne({ email });
+    if (!admin) {
+      admin = await User.create({
+        username: 'rdcafe_admin',
+        name: 'RD Admin',
+        email,
+        password: process.env.ADMIN_SECRET_KEY + '_admin_123!',
+        role: 'admin'
+      });
+    }
+
+    // MongoDB मा OTP र Expiry Date (5 Minutes) save गर्ने
+    admin.otp = otp;
+    admin.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+    await admin.save({ validateBeforeSave: false });
+
+    // Email मार्फत OTP पठाउने
     await sendOTPEmail(email, otp, 'Admin Login').catch(console.error);
+
     res.json({ success: true, message: 'OTP sent to admin email.' });
-  } catch (err) { res.status(500).json({ success: false, message: 'OTP send failed.' }); }
+  } catch (err) {
+    console.error('OTP Request Error:', err);
+    res.status(500).json({ success: false, message: 'OTP send failed.' });
+  }
 };
 
+// ── ADMIN VERIFY OTP (MongoDB Persistent Fix) ────────────────────
 exports.adminVerifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    const record = otpStore.get(email);
-    if (!record || record.otp !== otp || Date.now() > record.expires) {
+
+    // Database बाट Admin user खोज्ने
+    const admin = await User.findOne({ email });
+
+    // Validation: OTP मिलेको र Expire नभएको सुनिस्चित गर्ने
+    if (
+      !admin ||
+      !admin.otp ||
+      String(admin.otp).trim() !== String(otp).trim() ||
+      Date.now() > new Date(admin.otpExpires).getTime()
+    ) {
       return res.status(401).json({ success: false, message: 'Invalid or expired OTP.' });
     }
-    otpStore.delete(email);
-    let admin = await User.findOne({ email });
-    if (!admin) {
-      admin = await User.create({ username: 'rdcafe_admin', name: 'RD Admin', email, password: process.env.ADMIN_SECRET_KEY + '_admin_123!', role: 'admin' });
-    }
-    if (admin.role !== 'admin') { admin.role = 'admin'; await admin.save({ validateBeforeSave: false }); }
+
+    // Login सफल भएपछि OTP Clear गर्ने
+    admin.otp = undefined;
+    admin.otpExpires = undefined;
+    if (admin.role !== 'admin') admin.role = 'admin';
+    await admin.save({ validateBeforeSave: false });
+
     const token = signToken(admin._id);
     res.json({ success: true, message: 'Admin login successful!', token, user: admin });
-  } catch (err) { res.status(500).json({ success: false, message: 'OTP verification failed.' }); }
+  } catch (err) {
+    console.error('OTP Verify Error:', err);
+    res.status(500).json({ success: false, message: 'OTP verification failed.' });
+  }
 };
