@@ -1,5 +1,9 @@
 const express = require('express');
 const http = require('http');
+const dns = require('node:dns'); // <--- 1. Add DNS module
+
+// Force IPv4 DNS lookups first to resolve SRV record queries on Node.js 18+
+dns.setDefaultResultOrder('ipv4first'); // <--- 2. Add this line
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -57,11 +61,16 @@ app.use('*', (req, res) => res.status(404).json({ success: false, message: 'Rout
 app.use((err, req, res, next) => res.status(err.statusCode || 500).json({ success: false, message: err.message || 'Server error' }));
 
 const PORT = process.env.PORT || 8000;
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('✅ MongoDB connected');
-    server.listen(PORT, () => console.log(`🚀 RD Cafe API running on port ${PORT}`));
-  })
-  .catch(err => { console.error('❌ MongoDB failed:', err.message); process.exit(1); });
 
-module.exports = { app, io };
+// 1. Connect to MongoDB independently
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => {
+    console.error('❌ MongoDB failed:', err.message);
+    // Optional: Log error without crashing the server immediately
+  });
+
+// 2. Bind HTTP server to 0.0.0.0 so Render detects the port instantly
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 RD Cafe API running on port ${PORT}`);
+});
