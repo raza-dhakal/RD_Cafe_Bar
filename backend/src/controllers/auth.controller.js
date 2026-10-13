@@ -17,6 +17,7 @@ exports.register = async (req, res) => {
     res.status(201).json({ success: true, message: `Welcome to RD Café, ${name}! 🎉`, token, user });
   } catch (err) {
     if (err.code === 11000) return res.status(409).json({ success: false, message: 'Email or username already taken.' });
+    console.error('register error:', err.message);
     res.status(500).json({ success: false, message: 'Registration failed.' });
   }
 };
@@ -32,7 +33,10 @@ exports.login = async (req, res) => {
     await user.save({ validateBeforeSave: false });
     const token = signToken(user._id, rememberMe ? '30d' : '7d');
     res.json({ success: true, message: `Welcome back, ${user.name}! ☕`, token, user });
-  } catch (err) { res.status(500).json({ success: false, message: 'Login failed.' }); }
+  } catch (err) {
+    console.error('login error:', err.message);
+    res.status(500).json({ success: false, message: 'Login failed.' });
+  }
 };
 
 exports.getMe = async (req, res) => res.json({ success: true, user: req.user });
@@ -57,7 +61,10 @@ exports.forgotPassword = async (req, res) => {
     const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
     await sendOTPEmail(email, `<a href="${resetURL}">Click here to reset</a>`, 'Password Reset Link').catch(console.error);
     res.json({ success: true, message: 'If registered, reset link sent.' });
-  } catch (err) { res.status(500).json({ success: false, message: 'Could not send reset email.' }); }
+  } catch (err) {
+    console.error('forgotPassword error:', err.message);
+    res.status(500).json({ success: false, message: 'Could not send reset email.' });
+  }
 };
 
 exports.resetPassword = async (req, res) => {
@@ -71,28 +78,42 @@ exports.resetPassword = async (req, res) => {
     await user.save();
     const token = signToken(user._id);
     res.json({ success: true, message: 'Password reset successful!', token, user });
-  } catch (err) { res.status(500).json({ success: false, message: 'Password reset failed.' }); }
+  } catch (err) {
+    console.error('resetPassword error:', err.message);
+    res.status(500).json({ success: false, message: 'Password reset failed.' });
+  }
 };
 
+// ── ADMIN OTP (in-memory, 5 min expiry, max 5 tries) ────────────
 const otpStore = new Map();
+
 exports.adminRequestOtp = async (req, res) => {
   try {
     const { email, secretKey } = req.body;
-    if (email !== process.env.ADMIN_EMAIL || secretKey !== process.env.ADMIN_SECRET_KEY) {
+    if (!email || email !== process.env.ADMIN_EMAIL || secretKey !== process.env.ADMIN_SECRET_KEY) {
       return res.status(401).json({ success: false, message: 'Invalid admin credentials.' });
     }
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore.set(email, { otp, expires: Date.now() + 5 * 60 * 1000 });
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    otpStore.set(email, { otp, expires: Date.now() + 5 * 60 * 1000, tries: 0 });
     await sendOTPEmail(email, otp, 'Admin Login').catch(console.error);
     res.json({ success: true, message: 'OTP sent to admin email.' });
-  } catch (err) { res.status(500).json({ success: false, message: 'OTP send failed.' }); }
+  } catch (err) {
+    console.error('OTP Request Error:', err);
+    res.status(500).json({ success: false, message: 'OTP send failed.' });
+  }
 };
 
 exports.adminVerifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
     const record = otpStore.get(email);
-    if (!record || record.otp !== otp || Date.now() > record.expires) {
+    if (!record || Date.now() > record.expires) {
+      otpStore.delete(email);
+      return res.status(401).json({ success: false, message: 'Invalid or expired OTP.' });
+    }
+    if (String(otp || '').trim() !== record.otp) {
+      record.tries += 1;
+      if (record.tries >= 5) otpStore.delete(email);
       return res.status(401).json({ success: false, message: 'Invalid or expired OTP.' });
     }
     otpStore.delete(email);
@@ -103,5 +124,8 @@ exports.adminVerifyOtp = async (req, res) => {
     if (admin.role !== 'admin') { admin.role = 'admin'; await admin.save({ validateBeforeSave: false }); }
     const token = signToken(admin._id);
     res.json({ success: true, message: 'Admin login successful!', token, user: admin });
-  } catch (err) { res.status(500).json({ success: false, message: 'OTP verification failed.' }); }
+  } catch (err) {
+    console.error('OTP Verify Error:', err);
+    res.status(500).json({ success: false, message: 'OTP verification failed.' });
+  }
 };

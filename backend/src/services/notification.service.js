@@ -107,6 +107,37 @@ const sendWhatsApp = async (phone, message) => {
   } catch (err) { console.error('WhatsApp error:', err.message); }
 };
 
+// ── Supplier Purchase Order Email (AI Forecast → supplier) ─────
+const sendSupplierOrderEmail = async ({ supplierName, supplierEmail, items, city, date }) => {
+  if (!supplierEmail) return;
+  const rows = (items || []).map(i =>
+    `<tr><td style="padding:9px 8px;border-bottom:1px solid #1a1510;color:#F5EDD8">${i.name}</td><td style="padding:9px 8px;border-bottom:1px solid #1a1510;text-align:right;color:#C9A84C;font-weight:bold">${i.qty} ${i.unit || ''}</td></tr>`
+  ).join('');
+  const html = `<div style="max-width:520px;margin:0 auto;font-family:Arial,sans-serif;background:#0E0B08">
+    <div style="background:#1A1510;padding:26px;text-align:center;border-bottom:2px solid #C9A84C">
+      <div style="font-size:22px;color:#C9A84C;letter-spacing:3px">RD CAFÉ &amp; BAR</div>
+      <div style="font-size:10px;letter-spacing:3px;color:rgba(245,237,216,0.4);margin-top:6px;text-transform:uppercase">Purchase Order</div>
+    </div>
+    <div style="padding:28px;color:#F5EDD8">
+      <p style="margin:0 0 4px">Dear <strong style="color:#C9A84C">${supplierName || 'Supplier'}</strong>,</p>
+      <p style="font-size:13px;color:rgba(245,237,216,0.6);margin:0 0 18px">We would like to place the following order${date ? ` for <strong>${date}</strong>` : ''}${city ? ` (${city})` : ''}:</p>
+      <table style="width:100%;border-collapse:collapse;background:#1A1510;border:1px solid rgba(201,168,76,0.2)">
+        <thead><tr>
+          <th style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,0.4);padding:9px 8px;text-align:left;border-bottom:1px solid rgba(201,168,76,0.2)">Item</th>
+          <th style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(245,237,216,0.4);padding:9px 8px;text-align:right;border-bottom:1px solid rgba(201,168,76,0.2)">Quantity</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="font-size:12px;color:rgba(245,237,216,0.5);margin:18px 0 0">Please confirm availability and delivery time. Thank you!</p>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(201,168,76,0.15)">
+        <div style="color:#C9A84C;font-size:14px">RD Café &amp; Bar</div>
+        <div style="font-size:11px;color:rgba(245,237,216,0.4)">Sunwal-12, Bhumahi, Nawalparasi, Nepal · +977 9846863458</div>
+      </div>
+    </div>
+  </div>`;
+  await sendBrevoEmail(supplierEmail, supplierName, `Purchase Order — RD Café & Bar${date ? ` (${date})` : ''}`, html);
+};
+
 const sendAllNotifications = async (order, customer) => {
   const { name, email, phone } = customer;
   const waMsg = `*RD Café & Bar* ☕\n\nNamaste ${name}! 🙏\n\n✅ Order *#${order.orderId}* confirmed!\n*Total:* Rs. ${order.totalAmount}\n*Type:* ${order.orderType}\n\nQueries: +977 9846863458`;
@@ -117,4 +148,4 @@ const sendAllNotifications = async (order, customer) => {
   ].filter(Boolean));
 };
 
-module.exports = { sendOrderEmail, sendStatusEmail, sendOTPEmail, sendSMS, sendOrderSMS, sendStatusSMS, sendWhatsApp, sendAllNotifications };
+module.exports = { sendOrderEmail, sendStatusEmail, sendOTPEmail, sendSMS, sendOrderSMS, sendStatusSMS, sendWhatsApp, sendAllNotifications, sendSupplierOrderEmail };
